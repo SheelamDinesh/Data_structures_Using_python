@@ -1,11 +1,11 @@
 
 This repository contains a collection of commonly used data structures implemented in Python. The purpose of this repository is to provide a comprehensive resource for understanding and implementing data structures efficiently using the Python programming language.
 <h3> Table of Contents</h3>
-	<h3> 1. Overview</h3>
-	<h3> 2. Data Structures</h3>
-	<h3> 3. Usage</h3>
-	<h3> 4. Contributing</h3>
-	<h3> 5.License</h3>
+	<h5> 1. Overview</h5>
+	<h5> 2. Data Structures</h5>
+	<h5> 3. Usage</h5>
+	<h5> 4. Contributing</h5>
+	<h5> 5.License</h5>
 --------------------------------------------------------------------------------------------------------------
 <h2> 1. Overview</h2>
 Understanding data structures is crucial for developing efficient algorithms and solving complex problems. This repository aims to provide a practical and hands-on approach to learning data structures through Python implementations.The implementations in this repository are designed to be clear, concise, and well-documented. Each data structure is implemented as a separate Python module, with accompanying examples and usage instructions.
