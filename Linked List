@@ -1,5 +1,0 @@
-Disadvantages of Array :
-1. We Need to pre allocate the space
-2. Insertion in the middle of array is costly
-3. Deletion from beginning is costly
-4. Implementation on data structure like queue and deque is complex.
