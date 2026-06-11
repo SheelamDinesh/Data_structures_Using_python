@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BFS vs DFS — Tree Traversal Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #161618;
+    --surface2: #1e1e22;
+    --border: rgba(255,255,255,0.08);
+    --text: #e8e6e0;
+    --muted: #6e6c66;
+    --accent-teal: #1fc98e;
+    --accent-teal-dim: rgba(31,201,142,0.15);
+    --accent-amber: #f5a623;
+    --accent-amber-dim: rgba(245,166,35,0.15);
+    --accent-blue: #4a9eff;
+    --accent-blue-dim: rgba(74,158,255,0.15);
+    --accent-red: #ff6b6b;
+    --node-default-bg: #1e1e22;
+    --node-default-stroke: rgba(255,255,255,0.15);
+    --node-visited-bg: rgba(31,201,142,0.2);
+    --node-visited-stroke: #1fc98e;
+    --node-active-bg: #1fc98e;
+    --node-active-stroke: #0fa870;
+  }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  header h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.4rem;
+  }
+
+  header p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* Mode buttons */
+  .mode-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+  }
+
+  .btn-mode {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+  }
+
+  .btn-mode:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+
+  .btn-mode.active {
+    background: var(--accent-teal-dim);
+    border-color: var(--accent-teal);
+    color: var(--accent-teal);
+  }
+
+  /* SVG canvas */
+  .svg-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  #tree-svg { display: block; width: 100%; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .btn-ctrl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    padding: 8px 18px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .btn-ctrl:hover { background: var(--surface2); border-color: rgba(255,255,255,0.2); }
+
+  #step-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  /* Step description */
+  .step-desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-teal);
+    border-radius: 8px;
+    padding: 12px 16px;
+    min-height: 48px;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+
+  /* Data structure rows */
+  .data-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 520px) { .data-row { grid-template-columns: 1fr; } }
+
+  .data-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .data-panel-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-height: 26px;
+    align-items: center;
+  }
+
+  .chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .chip-queue  { background: var(--accent-blue-dim);  color: var(--accent-blue);  border: 1px solid rgba(74,158,255,0.3); }
+  .chip-stack  { background: var(--accent-amber-dim); color: var(--accent-amber); border: 1px solid rgba(245,166,35,0.3); }
+  .chip-visit  { background: var(--accent-teal-dim);  color: var(--accent-teal);  border: 1px solid rgba(31,201,142,0.3); }
+  .chip-empty  { color: var(--muted); font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; }
+
+  /* Analogy card */
+  .analogy-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .analogy-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-teal);
+    margin-bottom: 6px;
+  }
+
+  .analogy-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .analogy-text strong { color: var(--text); font-weight: 500; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 10px 0 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .leg-item { display: flex; align-items: center; gap: 6px; }
+  .leg-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .leg-default { background: var(--node-default-bg); border: 1.5px solid rgba(255,255,255,0.2); }
+  .leg-visited { background: rgba(31,201,142,0.2); border: 1.5px solid #1fc98e; }
+  .leg-active  { background: #1fc98e; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>BFS vs DFS Explorer</h1>
+    <p>// tree traversal — step by step</p>
+  </header>
+
+  <div class="mode-row">
+    <button class="btn-mode active" id="btn-bfs"      onclick="setMode('bfs')">BFS · Level order</button>
+    <button class="btn-mode"        id="btn-dfs-pre"  onclick="setMode('dfs-pre')">DFS · Pre-order</button>
+    <button class="btn-mode"        id="btn-dfs-in"   onclick="setMode('dfs-in')">DFS · In-order</button>
+    <button class="btn-mode"        id="btn-dfs-post" onclick="setMode('dfs-post')">DFS · Post-order</button>
+  </div>
+
+  <div class="svg-card">
+    <svg id="tree-svg" viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Level labels (BFS only) -->
+      <text id="lbl0" x="44" y="50" fill="#6e6c66" font-family="JetBrains Mono, monospace" font-size="11">L0</text>
+      <text id="lbl1" x="44" y="130" fill="#6e6c66" font-family="JetBrains Mono, monospace" font-size="11">L1</text>
+      <text id="lbl2" x="44" y="215" fill="#6e6c66" font-family="JetBrains Mono, monospace" font-size="11">L2</text>
+
+      <!-- Edges -->
+      <line x1="340" y1="65" x2="210" y2="135" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <line x1="340" y1="65" x2="470" y2="135" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <line x1="210" y1="145" x2="130" y2="215" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <line x1="210" y1="145" x2="290" y2="215" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <line x1="470" y1="145" x2="390" y2="215" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <line x1="470" y1="145" x2="550" y2="215" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+
+      <!-- Nodes -->
+      <g id="node-1">
+        <circle id="c1" cx="340" cy="44" r="30" fill="#1e1e22" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <text x="340" y="44" text-anchor="middle" dominant-baseline="central" fill="#e8e6e0" font-family="Syne, sans-serif" font-size="17" font-weight="600">1</text>
+        <text id="ord1" x="362" y="22" fill="#1fc98e" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500"></text>
+      </g>
+      <g id="node-2">
+        <circle id="c2" cx="210" cy="130" r="30" fill="#1e1e22" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <text x="210" y="130" text-anchor="middle" dominant-baseline="central" fill="#e8e6e0" font-family="Syne, sans-serif" font-size="17" font-weight="600">2</text>
+        <text id="ord2" x="232" y="108" fill="#1fc98e" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500"></text>
+      </g>
+      <g id="node-3">
+        <circle id="c3" cx="470" cy="130" r="30" fill="#1e1e22" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <text x="470" y="130" text-anchor="middle" dominant-baseline="central" fill="#e8e6e0" font-family="Syne, sans-serif" font-size="17" font-weight="600">3</text>
+        <text id="ord3" x="492" y="108" fill="#1fc98e" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500"></text>
+      </g>
+      <g id="node-4">
+        <circle id="c4" cx="130" cy="215" r="30" fill="#1e1e22" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <text x="130" y="215" text-anchor="middle" dominant-baseline="central" fill="#e8e6e0" font-family="Syne, sans-serif" font-size="17" font-weight="600">4</text>
+        <text id="ord4" x="152" y="193" fill="#1fc98e" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500"></text>
+      </g>
+      <g id="node-5">
+        <circle id="c5" cx="290" cy="215" r="30" fill="#1e1e22" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <text x="290" y="215" text-anchor="middle" dominant-baseline="central" fill="#e8e6e0" font-family="Syne, sans-serif" font-size="17" font-weight="600">5</text>
+        <text id="ord5" x="312" y="193" fill="#1fc98e" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500"></text>
+      </g>
+      <g id="node-6">
+        <circle id="c6" cx="390" cy="215" r="30" fill="#1e1e22" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <text x="390" y="215" text-anchor="middle" dominant-baseline="central" fill="#e8e6e0" font-family="Syne, sans-serif" font-size="17" font-weight="600">6</text>
+        <text id="ord6" x="412" y="193" fill="#1fc98e" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500"></text>
+      </g>
+      <g id="node-7">
+        <circle id="c7" cx="550" cy="215" r="30" fill="#1e1e22" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <text x="550" y="215" text-anchor="middle" dominant-baseline="central" fill="#e8e6e0" font-family="Syne, sans-serif" font-size="17" font-weight="600">7</text>
+        <text id="ord7" x="572" y="193" fill="#1fc98e" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500"></text>
+      </g>
+    </svg>
+
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot leg-default"></div> unvisited</div>
+      <div class="leg-item"><div class="leg-dot leg-visited"></div> visited</div>
+      <div class="leg-item"><div class="leg-dot leg-active"></div> current</div>
+    </div>
+    <div style="height:10px"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-ctrl" onclick="stepBack()">← Back</button>
+    <button class="btn-ctrl" onclick="stepForward()">Next →</button>
+    <button class="btn-ctrl" id="btn-auto" onclick="autoPlay()">▶ Auto-play</button>
+    <button class="btn-ctrl" onclick="reset()">↺ Reset</button>
+    <span id="step-counter"></span>
+  </div>
+
+  <div class="step-desc" id="step-desc">Choose a mode above, then press Next →</div>
+
+  <div class="data-row">
+    <div class="data-panel">
+      <div class="data-panel-label" id="struct-label">Queue (FIFO)</div>
+      <div class="chips" id="struct-box"><span class="chip-empty">empty</span></div>
+    </div>
+    <div class="data-panel">
+      <div class="data-panel-label">Visited order</div>
+      <div class="chips" id="visited-box"><span class="chip-empty">none yet</span></div>
+    </div>
+  </div>
+
+  <div class="analogy-card">
+    <div class="analogy-title" id="analogy-title">BFS — Level order</div>
+    <div class="analogy-text" id="analogy-text">Imagine flooding a maze with water — it spreads outward <strong>level by level</strong>. Uses a <strong>Queue (FIFO)</strong>. Great for: shortest path, level-by-level processing.</div>
+  </div>
+</div>
+
+<script>
+const children = {1:[2,3], 2:[4,5], 3:[6,7], 4:[], 5:[], 6:[], 7:[]};
+const modes = {
+  'bfs':      { label:'BFS — Level order',  struct:'Queue (FIFO)',  chipClass:'chip-queue', analogy:'Imagine flooding a maze with water — it spreads outward <strong>level by level</strong>. Uses a <strong>Queue (FIFO)</strong>. Great for: shortest path, level-by-level processing.' },
+  'dfs-pre':  { label:'DFS — Pre-order',    struct:'Stack (LIFO)',  chipClass:'chip-stack', analogy:'Visit <strong>Root → Left → Right</strong>. Goes deep immediately. Uses a <strong>Stack (LIFO)</strong> or recursion. Great for: copying trees, prefix expressions.' },
+  'dfs-in':   { label:'DFS — In-order',     struct:'Stack (LIFO)',  chipClass:'chip-stack', analogy:'Visit <strong>Left → Root → Right</strong>. For BSTs this gives <strong>sorted order</strong>! Uses a <strong>Stack (LIFO)</strong>. Great for: BST sorted output, expression trees.' },
+  'dfs-post': { label:'DFS — Post-order',   struct:'Stack (LIFO)',  chipClass:'chip-stack', analogy:'Visit <strong>Left → Right → Root</strong>. Children before parent. Uses a <strong>Stack (LIFO)</strong>. Great for: deleting trees, postfix expressions.' },
+};
+
+function bfsSteps() {
+  let steps = [], queue = [1], visited = [];
+  steps.push({ active:null, struct:[...queue], visited:[...visited], desc:'Start: add root (1) to the queue.' });
+  while(queue.length) {
+    let n = queue.shift(); visited.push(n);
+    let ch = children[n]; ch.forEach(c => queue.push(c));
+    steps.push({ active:n, struct:[...queue], visited:[...visited], desc:`Dequeue & visit node ${n}. Add its children [${ch.length?ch.join(', '):'none'}] to queue.` });
+  }
+  return steps;
+}
+
+function dfsPreSteps() {
+  let steps = [], visited = [], stack = [1];
+  steps.push({ active:null, struct:[...stack], visited:[], desc:'Start: push root (1) onto the stack.' });
+  while(stack.length) {
+    let n = stack.pop(); visited.push(n);
+    let ch = [...children[n]].reverse(); ch.forEach(c => stack.push(c));
+    steps.push({ active:n, struct:[...stack].reverse(), visited:[...visited], desc:`Pop & visit node ${n} (Root). Push children right-to-left: [${ch.length?ch.join(', '):'none'}]` });
+  }
+  return steps;
+}
+
+function dfsInSteps() {
+  let steps = [], visited = [];
+  steps.push({ active:null, struct:[], visited:[], desc:'In-order: go Left first, then Root, then Right. Uses recursion.' });
+  function inorder(n) {
+    if(!n) return;
+    let [l,r] = children[n]||[];
+    if(l) inorder(l);
+    visited.push(n);
+    steps.push({ active:n, struct:[...visited], visited:[...visited], desc:`Visit node ${n} (Root, after left subtree done).` });
+    if(r) inorder(r);
+  }
+  inorder(1);
+  return steps;
+}
+
+function dfsPostSteps() {
+  let steps = [], visited = [];
+  steps.push({ active:null, struct:[], visited:[], desc:'Post-order: go Left, Right, then Root. Children always before parent.' });
+  function postorder(n) {
+    if(!n) return;
+    let [l,r] = children[n]||[];
+    if(l) postorder(l);
+    if(r) postorder(r);
+    visited.push(n);
+    steps.push({ active:n, struct:[...visited], visited:[...visited], desc:`Visit node ${n} (Root, after BOTH children done).` });
+  }
+  postorder(1);
+  return steps;
+}
+
+let mode = 'bfs', steps = [], cursor = 0, autoTimer = null;
+
+function buildSteps() {
+  if(mode==='bfs') steps = bfsSteps();
+  else if(mode==='dfs-pre') steps = dfsPreSteps();
+  else if(mode==='dfs-in') steps = dfsInSteps();
+  else steps = dfsPostSteps();
+}
+
+function setMode(m) {
+  clearInterval(autoTimer); autoTimer = null;
+  document.getElementById('btn-auto').textContent = '▶ Auto-play';
+  mode = m; cursor = 0; buildSteps();
+  ['btn-bfs','btn-dfs-pre','btn-dfs-in','btn-dfs-post'].forEach(id => {
+    document.getElementById(id).classList.toggle('active', id === 'btn-'+m);
+  });
+  const info = modes[m];
+  document.getElementById('analogy-title').textContent = info.label;
+  document.getElementById('analogy-text').innerHTML = info.analogy;
+  document.getElementById('struct-label').textContent = info.struct;
+  ['lbl0','lbl1','lbl2'].forEach(id => {
+    document.getElementById(id).style.opacity = m==='bfs' ? '1' : '0';
+  });
+  render();
+}
+
+function render() {
+  const s = steps[cursor]; if(!s) return;
+  [1,2,3,4,5,6,7].forEach(n => {
+    document.getElementById('c'+n).setAttribute('fill','#1e1e22');
+    document.getElementById('c'+n).setAttribute('stroke','rgba(255,255,255,0.15)');
+    document.getElementById('c'+n).setAttribute('stroke-width','1.5');
+    document.getElementById('ord'+n).textContent = '';
+  });
+  s.visited.forEach((n,i) => {
+    const c = document.getElementById('c'+n);
+    if(n === s.active) {
+      c.setAttribute('fill','#1fc98e'); c.setAttribute('stroke','#0fa870'); c.setAttribute('stroke-width','2');
+    } else {
+      c.setAttribute('fill','rgba(31,201,142,0.18)'); c.setAttribute('stroke','#1fc98e'); c.setAttribute('stroke-width','1.5');
+    }
+    document.getElementById('ord'+n).textContent = (i+1);
+  });
+  document.getElementById('step-desc').textContent = s.desc;
+  document.getElementById('step-counter').textContent = `step ${cursor+1} / ${steps.length}`;
+  const chipClass = modes[mode].chipClass;
+  const sb = document.getElementById('struct-box');
+  sb.innerHTML = s.struct.length
+    ? s.struct.map(n=>`<span class="chip ${chipClass}">${n}</span>`).join('')
+    : '<span class="chip-empty">empty</span>';
+  const vb = document.getElementById('visited-box');
+  vb.innerHTML = s.visited.length
+    ? s.visited.map(n=>`<span class="chip chip-visit">${n}</span>`).join('')
+    : '<span class="chip-empty">none yet</span>';
+}
+
+function stepForward() { if(cursor < steps.length-1){ cursor++; render(); } }
+function stepBack()    { if(cursor > 0){ cursor--; render(); } }
+function reset()       { clearInterval(autoTimer); autoTimer=null; document.getElementById('btn-auto').textContent='▶ Auto-play'; cursor=0; render(); }
+function autoPlay() {
+  if(autoTimer){ clearInterval(autoTimer); autoTimer=null; document.getElementById('btn-auto').textContent='▶ Auto-play'; return; }
+  document.getElementById('btn-auto').textContent='⏸ Pause';
+  autoTimer = setInterval(()=>{ if(cursor<steps.length-1){ cursor++; render(); } else { clearInterval(autoTimer); autoTimer=null; document.getElementById('btn-auto').textContent='▶ Auto-play'; } }, 950);
+}
+
+buildSteps(); render();
+</script>
+</body>
+</html>
